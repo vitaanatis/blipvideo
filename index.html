@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlipView - Watch & Upload Videos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col items-center p-4">
+
+    <!-- Message Notification -->
+    <div id="message-notification" class="fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-white z-50 transition-all duration-300 ease-in-out opacity-0 -translate-y-10" role="alert">
+        <span id="message-text"></span>
+    </div>
+
+    <!-- Header Section -->
+    <header class="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-center py-4 px-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
+        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 mb-4 sm:mb-0">
+            BlipView
+        </h1>
+        <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <span class="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-right">
+                Your User ID: <span id="user-id" class="font-mono text-xs break-all">anonymous_user</span>
+            </span>
+            <button id="upload-video-button" class="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 w-full sm:w-auto">
+                Upload Video
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="w-full max-w-6xl">
+        <!-- Current Playing Video Section -->
+        <section id="video-player-section" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 mb-8 relative hidden">
+            <h2 id="current-video-title" class="text-3xl font-bold mb-4 text-center text-gray-900 dark:text-white"></h2>
+            <button id="close-player-button" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-bold">
+                &times;
+            </button>
+            <div class="relative w-full pb-[56.25%] mb-4 rounded-lg overflow-hidden shadow-lg"> <!-- 16:9 Aspect Ratio -->
+                <video id="current-video-player" controls autoplay class="absolute top-0 left-0 w-full h-full rounded-lg" onerror="console.error('Video error:', this.error)">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <p id="current-video-description" class="text-gray-700 dark:text-gray-300 text-lg mb-4"></p>
+            <p id="current-video-meta" class="text-sm text-gray-500 dark:text-gray-400 text-right"></p>
+        </section>
+
+        <!-- Video List Section -->
+        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Recent Blips</h2>
+            <div id="video-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Videos will be loaded here by JavaScript -->
+                <p id="no-videos-message" class="text-center text-lg text-gray-600 dark:text-gray-400 py-8 col-span-full">
+                    No blips uploaded yet. Be the first to upload one!
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-md relative">
+            <button id="close-upload-modal-button" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-bold">
+                &times;
+            </button>
+            <h2 class="text-2xl font-bold mb-4 text-center text-gray-900 dark:text-white">Upload Your Blip!</h2>
+            <div class="mb-4">
+                <label for="video-file-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select Video File:
+                </label>
+                <input type="file" id="video-file-input" accept="video/*" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"/>
+                <p id="selected-file-name" class="mt-2 text-sm text-gray-600 dark:text-gray-400"></p>
+            </div>
+            <div class="mb-4">
+                <label for="video-title-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Video Title:
+                </label>
+                <input type="text" id="video-title-input" placeholder="A catchy title for your video" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"/>
+            </div>
+            <div class="mb-4">
+                <label for="video-description-textarea" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description (Optional):
+                </label>
+                <textarea id="video-description-textarea" rows="3" placeholder="Tell us more about your video..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"></textarea>
+            </div>
+            <button id="upload-button" class="w-full py-3 px-4 rounded-lg font-semibold transition duration-300 ease-in-out bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg">
+                Upload Blip
+            </button>
+            <div id="upload-progress-bar-container" class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4 hidden">
+                <div id="upload-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Helper function to show a temporary message notification
+        function showMessageNotification(msg, isError = false) {
+            const messageNotification = document.getElementById('message-notification');
+            const messageText = document.getElementById('message-text');
+
+            messageText.textContent = msg;
+            messageNotification.classList.remove('opacity-0', '-translate-y-10', 'bg-red-500', 'bg-green-500');
+            if (isError) {
+                messageNotification.classList.add('bg-red-500');
+            } else {
+                messageNotification.classList.add('bg-green-500');
+            }
+            messageNotification.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                messageNotification.classList.remove('opacity-100', 'translate-y-0');
+                messageNotification.classList.add('opacity-0', '-translate-y-10');
+            }, 3000); // Message disappears after 3 seconds
+        }
+
+        // DOM Elements
+        const uploadVideoButton = document.getElementById('upload-video-button');
+        const uploadModal = document.getElementById('upload-modal');
+        const closeUploadModalButton = document.getElementById('close-upload-modal-button');
+        const videoFileInput = document.getElementById('video-file-input');
+        const selectedFileNameSpan = document.getElementById('selected-file-name');
+        const videoTitleInput = document.getElementById('video-title-input');
+        const videoDescriptionTextarea = document.getElementById('video-description-textarea');
+        const uploadButton = document.getElementById('upload-button');
+        const uploadProgressBarContainer = document.getElementById('upload-progress-bar-container');
+        const uploadProgressBar = document.getElementById('upload-progress-bar');
+        const videoListContainer = document.getElementById('video-list-container');
+        const noVideosMessage = document.getElementById('no-videos-message');
+        const videoPlayerSection = document.getElementById('video-player-section');
+        const currentVideoPlayer = document.getElementById('current-video-player');
+        const currentVideoTitle = document.getElementById('current-video-title');
+        const currentVideoDescription = document.getElementById('current-video-description');
+        const currentVideoMeta = document.getElementById('current-video-meta');
+        const closePlayerButton = document.getElementById('close-player-button');
+        const userIdSpan = document.getElementById('user-id'); // Now just a static placeholder
+
+        let isUploading = false; // Flag to prevent closing modal during upload
+
+        // Set a dummy user ID for display, as there's no real authentication
+        userIdSpan.textContent = 'anonymous_browser_id-' + Math.random().toString(36).substring(2, 10);
+
+        // --- Video Listing and Real-time-ish Updates ---
+        // We'll fetch videos on load and after upload, but not true real-time without a WebSocket or polling
+        async function fetchAndRenderVideos() {
+            try {
+                const response = await fetch('/videos'); // Fetch from your Node.js /videos endpoint
+                const data = await response.json();
+
+                if (data.success) {
+                    renderVideoList(data.videos);
+                } else {
+                    showMessageNotification(`Failed to load videos: ${data.message}`, true);
+                }
+            } catch (error) {
+                console.error("Error fetching videos:", error);
+                showMessageNotification("Failed to load videos. Server might be down or unreachable.", true);
+            }
+        }
+
+        function renderVideoList(videos) {
+            videoListContainer.innerHTML = ''; // Clear existing videos
+            if (videos.length === 0) {
+                noVideosMessage.classList.remove('hidden');
+            } else {
+                noVideosMessage.classList.add('hidden');
+                videos.forEach(video => {
+                    const videoCard = document.createElement('div');
+                    videoCard.className = 'bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden transform transition duration-300 hover:scale-105 hover:shadow-lg cursor-pointer flex flex-col';
+                    videoCard.onclick = () => playVideo(video);
+
+                    // Note: video.videoUrl is now a relative path from the server
+                    videoCard.innerHTML = `
+                        <div class="relative w-full aspect-video bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-sm font-semibold">
+                            <img src="https://placehold.co/400x225/4c51bf/ffffff?text=BlipView+Video" alt="Video Thumbnail Placeholder" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x225/4c51bf/ffffff?text=BlipView+Video';">
+                            <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                                <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="p-4 flex-grow flex flex-col justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                                ${video.title}
+                            </h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                                ${video.description || 'No description provided.'}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                ${new Date(video.uploadedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    `;
+                    videoListContainer.appendChild(videoCard);
+                });
+            }
+        }
+
+        // Fetch videos when the page loads
+        window.onload = fetchAndRenderVideos;
+
+
+        // --- Video Upload Functionality ---
+        uploadVideoButton.addEventListener('click', () => {
+            uploadModal.classList.remove('hidden');
+        });
+
+        closeUploadModalButton.addEventListener('click', () => {
+            if (!isUploading) {
+                uploadModal.classList.add('hidden');
+                // Reset form fields
+                videoFileInput.value = '';
+                selectedFileNameSpan.textContent = '';
+                videoTitleInput.value = '';
+                videoDescriptionTextarea.value = '';
+                uploadProgressBarContainer.classList.add('hidden');
+                uploadProgressBar.style.width = '0%';
+                uploadButton.textContent = 'Upload Blip';
+                uploadButton.disabled = false;
+                uploadButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                uploadButton.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-indigo-600', 'hover:from-purple-700', 'hover:to-indigo-700', 'text-white', 'shadow-lg');
+            } else {
+                showMessageNotification("Upload in progress. Please wait or cancel.", true);
+            }
+        });
+
+        videoFileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                selectedFileNameSpan.textContent = `Selected: ${e.target.files[0].name}`;
+            } else {
+                selectedFileNameSpan.textContent = '';
+            }
+        });
+
+        uploadButton.addEventListener('click', async () => {
+            const file = videoFileInput.files[0];
+            const title = videoTitleInput.value.trim();
+            const description = videoDescriptionTextarea.value.trim();
+
+            if (!file || !title) {
+                showMessageNotification("Please select a video file and enter a title.", true);
+                return;
+            }
+
+            isUploading = true;
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Uploading... 0%';
+            uploadButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+            uploadButton.classList.remove('bg-gradient-to-r', 'from-purple-600', 'to-indigo-600', 'hover:from-purple-700', 'hover:to-indigo-700', 'text-white', 'shadow-lg');
+            uploadProgressBarContainer.classList.remove('hidden');
+            uploadProgressBar.style.width = '0%';
+
+            const formData = new FormData();
+            formData.append('videoFile', file); // 'videoFile' matches the field name in multer.single() in server.js
+            formData.append('title', title);
+            formData.append('description', description);
+
+            try {
+                // Fetch to your Node.js /upload endpoint
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload', true);
+
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const progress = (event.loaded / event.total) * 100;
+                        uploadProgressBar.style.width = `${progress}%`;
+                        uploadButton.textContent = `Uploading... ${progress.toFixed(0)}%`;
+                    }
+                };
+
+                xhr.onload = () => {
+                    isUploading = false;
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = 'Upload Blip';
+                    uploadButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    uploadButton.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-indigo-600', 'hover:from-purple-700', 'hover:to-indigo-700', 'text-white', 'shadow-lg');
+                    uploadProgressBarContainer.classList.add('hidden');
+
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            showMessageNotification("Video uploaded successfully!");
+                            closeUploadModalButton.click(); // Simulate click to reset and hide modal
+                            fetchAndRenderVideos(); // Re-fetch videos to update list
+                        } else {
+                            showMessageNotification(`Upload failed: ${response.message}`, true);
+                        }
+                    } else {
+                        let errorMessage = `Server error: ${xhr.status} ${xhr.statusText}`;
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            if (errorResponse.message) {
+                                errorMessage = errorResponse.message;
+                            }
+                        } catch (e) {
+                            // Response was not JSON
+                        }
+                        showMessageNotification(`Upload failed: ${errorMessage}`, true);
+                    }
+                };
+
+                xhr.onerror = () => {
+                    isUploading = false;
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = 'Upload Blip';
+                    uploadButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    uploadButton.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-indigo-600', 'hover:from-purple-700', 'hover:to-indigo-700', 'text-white', 'shadow-lg');
+                    uploadProgressBarContainer.classList.add('hidden');
+                    showMessageNotification("Network error during upload. Please try again.", true);
+                };
+
+                xhr.send(formData);
+
+            } catch (error) {
+                console.error("Error during upload preparation:", error);
+                showMessageNotification("An unexpected error occurred. Please try again.", true);
+                isUploading = false;
+                uploadButton.disabled = false;
+                uploadButton.textContent = 'Upload Blip';
+                uploadButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                uploadButton.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-indigo-600', 'hover:from-purple-700', 'hover:to-indigo-700', 'text-white', 'shadow-lg');
+                uploadProgressBarContainer.classList.add('hidden');
+            }
+        });
+
+        // --- Video Playback Functionality ---
+        function playVideo(video) {
+            currentVideoTitle.textContent = video.title;
+            currentVideoDescription.textContent = video.description || 'No description provided.';
+            currentVideoMeta.textContent = `Uploaded by: ${video.uploadedByUserId} on ${new Date(video.uploadedAt).toLocaleDateString()}`;
+            currentVideoPlayer.src = video.videoUrl; // video.videoUrl is now a path from server
+            videoPlayerSection.classList.remove('hidden');
+            currentVideoPlayer.load(); // Load the new video source
+            currentVideoPlayer.play(); // Play the video
+        }
+
+        closePlayerButton.addEventListener('click', () => {
+            currentVideoPlayer.pause(); // Pause the video
+            currentVideoPlayer.removeAttribute('src'); // Clear src to prevent auto-play on re-show
+            videoPlayerSection.classList.add('hidden');
+        });
+
+    </script>
+</body>
+</html>
