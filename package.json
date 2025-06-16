@@ -1,1 +1,23 @@
-
+{
+  "name": "blipview-static-server",
+  "version": "1.0.0",
+  "description": "A simple Node.js server to serve the BlipView HTML application.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "blipview",
+    "video",
+    "html",
+    "javascript",
+    "firebase",
+    "render"
+  ],
+  "author": "Your Name/Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
