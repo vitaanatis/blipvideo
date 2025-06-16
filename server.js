@@ -19,8 +19,8 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const VIDEOS_DB_PATH = path.join(__dirname, 'videos.json');
 
 // Ensure uploads directory exists
-if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLODS_DIR);
+if (!fs.existsSync(UPLOADS_DIR)) { // CORRECTED TYPO HERE: UPLODS_DIR -> UPLOADS_DIR
+    fs.mkdirSync(UPLOADS_DIR);
 }
 
 // Initialize videos data (load from file or start empty)
